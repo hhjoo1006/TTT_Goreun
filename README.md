@@ -80,5 +80,8 @@ npm test
 | --- | --- |
 | travel_instagram | 여행 사진은 잔뜩, / 인스타엔 뭘 올리지? |
 | cute | 오늘 찍은 사진 중 / 가장 귀여운 한 컷은? 💕 |
+| pet | 다 귀여워서 / 못 고르죠? (시작 버튼: 3초 만에 고르기) |
+
+시작 버튼 문구는 `entry-copy.mjs`의 `entryButtons`에 등록한 값만 바뀌고, 나머지는 기존 버튼 문구를 유지합니다.
 
 광고 링크는 `/app/?utm_source=instagram&utm_medium=paid_social&utm_campaign=travel_post_01&utm_content=travel_instagram` 또는 `/app/?utm_source=instagram&utm_medium=paid_social&utm_campaign=cute_pick_01&utm_content=cute`를 사용합니다. `start=pick`은 첫 화면을 건너뛰므로 제목을 보여줄 광고 링크에는 넣지 않습니다. UTM 값은 유입 식별용이며 이 변경에서 별도 집계 도구를 추가하지는 않습니다.
