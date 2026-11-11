@@ -71,3 +71,14 @@ npm test
 **Pages 배포본은 기기 내 기본 정리만 제공합니다.** Gemini 서버 API와 비밀 키는 포함하지 않으며 AI 분석은 활성화되지 않습니다. 기존 `npm run build`의 서버 포함 배포 방식은 그대로 사용할 수 있습니다.
 
 로컬 빌드 확인: `npm run test:pages && npm run build:pages`. 기본 경로는 `/TTT_Goreun`이며 루트 배포를 테스트하려면 `PAGES_BASE_PATH='' npm run build:pages`를 사용합니다.
+
+## 서비스 첫 화면의 광고 문구
+
+`/app/`의 큰 제목만 `utm_content`로 전환합니다. `prototype/web/entry-copy.mjs`의 `entryTitles`에 항목을 추가하면 타겟을 확장할 수 있습니다. 값이 없거나 등록되지 않은 값이면 기존 HTML 제목을 유지합니다. 랜딩, 버튼, 설명, 스타일, 사진은 바뀌지 않습니다.
+
+| utm_content | 서비스 제목 |
+| --- | --- |
+| travel_instagram | 여행 사진은 잔뜩, / 인스타엔 뭘 올리지? |
+| cute | 오늘 찍은 사진 중 / 가장 귀여운 한 컷은? 💕 |
+
+광고 링크는 `/app/?utm_source=instagram&utm_medium=paid_social&utm_campaign=travel_post_01&utm_content=travel_instagram` 또는 `/app/?utm_source=instagram&utm_medium=paid_social&utm_campaign=cute_pick_01&utm_content=cute`를 사용합니다. `start=pick`은 첫 화면을 건너뛰므로 제목을 보여줄 광고 링크에는 넣지 않습니다. UTM 값은 유입 식별용이며 이 변경에서 별도 집계 도구를 추가하지는 않습니다.
