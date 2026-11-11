@@ -1,4 +1,4 @@
-export const albums=[{id:'recent',label:'최근 항목'},{id:'favorites',label:'즐겨찾기'},{id:'portraits',label:'인물 사진'},{id:'travel',label:'여행'},{id:'family',label:'가족'},{id:'daily',label:'일상'},{id:'pets',label:'반려견'}];
+export const albums=[{id:'recent',label:'최근 항목'},{id:'portraits',label:'인물 사진'},{id:'travel',label:'여행'},{id:'family',label:'가족'},{id:'daily',label:'일상'},{id:'pets',label:'반려견'}];
 export const sampleAlbum=[
  {asset:'family-open',name:'호숫가에서 웃는 순간.jpg',folder:'family',portrait:true,favorite:true},
  {asset:'family-closed',name:'잠깐 눈을 감은 순간.jpg',folder:'family',portrait:true},
