@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#ffffff"><meta name="description" content="내가 고른 사진, 고르게 담긴 취향. 인스타에 올릴 사진을 내 취향과 기준으로 고르고 나란히 비교하는 Goreun.">
   <title>Goreun · 소중한 순간만, 가볍게.</title>
-  <link rel="preload" href="assets/fonts/Pretendard-Regular.woff2" as="font" type="font/woff2" crossorigin><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css?v=swipe-1">
+  <link rel="preload" href="assets/fonts/Pretendard-Regular.woff2" as="font" type="font/woff2" crossorigin><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css?v=photo-picker-focus-1">
 </head>
 <body>
   <header class="topbar" id="global-header"><button class="icon-button" id="back-home" aria-label="홈으로 돌아가기"><span data-icon="back"></span></button><a class="header-brand" href="/" aria-label="고른 서비스 소개로 돌아가기">Goreun</a></header>
@@ -37,9 +37,9 @@
       <section id="organize-screen" class="screen" hidden>
         <div class="organize-heading"><button class="text-button criteria-shortcut" id="edit-settings"><span data-icon="sliders"></span>내 기준</button></div>
         <div class="organize-workspace">
-          <section class="photo-selection" aria-labelledby="selection-title"><div class="section-label album-heading"><div><h2 id="selection-title">이번 게시물의 사진을 골라요</h2><button type="button" class="text-button" id="album-expand" title="내 사진 고르기">내 사진 고르기</button></div><span class="subtle" id="photo-count">0장 선택</span></div>
+          <section class="photo-selection" aria-labelledby="selection-title"><div class="section-label album-heading"><div><h2 id="selection-title">이번 게시물의 사진을 골라요</h2></div><span class="subtle" id="photo-count">0장 선택</span></div>
 <input id="photo-input" type="file" accept="image/*" multiple hidden>
-<div class="album-tabs" id="album-tabs" role="group" aria-label="사진 앨범"></div>
+<div class="album-tabs" id="album-tabs" role="group" aria-label="사진 앨범"><button type="button" id="album-expand" class="album-device-picker" title="내 사진 고르기">내 사진 고르기</button><div class="album-filters" id="album-filters"></div></div>
 <div id="drop-zone" class="album-browser"><div id="album-scroll" class="album-scroll" tabindex="0" aria-label="앨범 사진 목록"><div id="photo-grid" class="photo-grid"></div><p id="album-empty" class="album-empty" hidden></p></div></div>
 </section>
 <div class="organize-dock"><div class="selection-dock"><div class="album-tools"><span id="album-source">예시 앨범</span><div class="photo-toolbar" id="photo-toolbar"><button type="button" class="text-button" id="all-photos">모두 선택</button><button type="button" class="text-button" id="no-photos">선택 해제</button></div></div><div class="progress-note" id="photo-progress" role="status" hidden></div></div>
@@ -62,6 +62,6 @@
   <dialog id="google-terms" class="terms-dialog" aria-labelledby="google-terms-title"><div class="section-label"><h2 id="google-terms-title">Google 데이터 이용 약관</h2><button type="button" class="icon-button" id="close-google-terms" aria-label="약관 안내 닫기">×</button></div><p>Gemini 분석에 동의하면 선택한 사진과 취향 참고 사진의 압축 미리보기, 입력한 기준을 Google로 보냅니다. 원본 파일과 파일명은 보내지 않습니다.</p><p>전송한 데이터의 처리 조건은 사용하는 Gemini 서비스와 요금제에 따라 달라집니다. 무료 서비스에서는 전송 데이터가 제품 개선에 사용되거나 사람이 검토할 수 있습니다. Google은 무료 서비스에 개인·민감·기밀 정보를 보내지 않도록 안내합니다. 공식 원문을 확인해 주세요.</p><a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Gemini API 추가 서비스 약관 원문 ↗</a><a href="https://policies.google.com/privacy?hl=ko" target="_blank" rel="noopener noreferrer">Google 개인정보처리방침 ↗</a><p class="helper">이 팝업을 여는 것만으로 데이터 전송에 동의한 것은 아닙니다.</p></dialog>
   <dialog id="instagram-dialog" class="gallery-dialog" aria-labelledby="instagram-title"><div class="section-label"><h2 id="instagram-title">인스타그램 계정 연동</h2><button type="button" class="icon-button" id="close-instagram" aria-label="인스타그램 안내 닫기">×</button></div><p>계정의 게시물 사진을 취향으로 가져오는 연결은 준비 중이에요.</p><p class="helper">지금은 좋아하는 게시물 사진을 직접 더해 주세요. 계정명만으로 사진을 가져오거나 취향을 학습하지 않아요.</p><button type="button" class="button primary" id="instagram-add-photos">게시물 사진 직접 더하기</button></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="app.js?v=entry-copy-1-photo-picker-2"></script>
+  <script type="module" src="app.js?v=photo-picker-focus-1"></script>
 </body>
 </html>

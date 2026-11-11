@@ -45,6 +45,7 @@ function show(screen) {
   $('global-header').hidden=screen==='home';document.body.dataset.screen=screen;
   window.scrollTo({top:0,behavior:'instant'});
   const title=$(`${screen}-screen`).querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true});}
+  if(screen==='organize')$('album-expand').focus({preventScroll:true});
 }
 function choice(labelText, value, name, checked, type='checkbox', glyph) {
   const label=node('label','choice'),input=node('input');input.type=type;input.name=name;input.value=value;input.checked=checked;
@@ -164,7 +165,7 @@ function updatePhotoStatus() {
  $('album-expand').disabled=state.reading>0||catalogLoading;
  $('composer-status').textContent=state.reading?'사진을 준비하고 있어요…':'';
  $('album-source').textContent=state.photos.some(p=>!p.sample)?'내가 연결한 사진':'예시 앨범';
- $('album-tabs').hidden=state.albumConfirmed;
+ $('album-filters').hidden=state.albumConfirmed;
  $('photo-toolbar').hidden=!state.photos.length||state.albumConfirmed;
  const visible=visibleAlbumPhotos();$('album-empty').hidden=visible.length>0;
  $('album-empty').textContent=catalogLoading?'앨범을 준비하고 있어요…':state.album==='favorites'?'즐겨찾기에 모인 사진이 없어요.':state.album==='portraits'?'이 앨범에 표시할 인물 사진이 없어요.':'이 앨범에 사진이 없어요. 다른 앨범을 골라주세요.';
@@ -179,7 +180,7 @@ function photoTile(photo) {
 }
 function mountPhotos(){
  $('photo-grid').replaceChildren(...visibleAlbumPhotos().map(photoTile));
- $('album-tabs').replaceChildren(...albums.map(album=>{const button=node('button','',album.label);button.type='button';button.setAttribute('aria-pressed',String(state.album===album.id));button.onclick=()=>{state.album=album.id;mountPhotos();$('album-scroll').scrollTop=0;};return button;}));
+ $('album-filters').replaceChildren(...albums.map(album=>{const button=node('button','',`${album.label} · 샘플`);button.type='button';button.setAttribute('aria-pressed',String(state.album===album.id));button.onclick=()=>{state.album=album.id;mountPhotos();$('album-scroll').scrollTop=0;};return button;}));
  updatePhotoStatus();
 }
 // Swipe to select, like the iPhone Photos app: a sideways swipe starts selecting (vertical swipes keep scrolling),
@@ -228,7 +229,7 @@ $('photo-grid').addEventListener('touchmove',event=>{if(swipe.selecting)event.pr
 $('photo-grid').addEventListener('click',event=>{if(swipe.justSwiped){event.preventDefault();event.stopPropagation();}},true);
 $('photo-grid').addEventListener('dragstart',event=>event.preventDefault());
 // Ask about device photos only when the user wants to load their own photos, not for the sample album.
-$('album-expand').onclick=()=>{if(gallery.choice==='allowed')$('photo-input').click();else $('gallery-dialog').showModal();};
+$('album-expand').onclick=()=>{state.album='recent';mountPhotos();$('album-scroll').scrollTop=0;if(gallery.choice==='allowed')$('photo-input').click();else $('gallery-dialog').showModal();};
 $('confirm-photos').onclick=()=>{state.albumConfirmed=!state.albumConfirmed;if(state.albumConfirmed&&!validRequestedCount())state.pickCountMode='1';mountPhotos();};
 function clearPhotos(){state.aiReview=null;state.version++;for(const p of state.photos)if(p.originalUrl)URL.revokeObjectURL(p.originalUrl);state.photos=[];state.included.clear();state.chosen.clear();state.cleanup.clear();state.candidates=[];state.result=null;state.demo=null;state.albumConfirmed=false;state.faceFailed=false;$('story').value='';mountPhotos();}
 async function importFiles(files, demoItems=null, {autoSelect=true,metadata=[]}={}) {
