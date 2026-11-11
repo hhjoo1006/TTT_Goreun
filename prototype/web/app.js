@@ -123,7 +123,7 @@ function acceptGallery(files){
   if(!summary.photos.count&&!summary.videos.count){toast('선택한 사진·영상이 없어 연결하지 않았어요.');return false;}
   gallery={choice:'allowed',summary};persistGallery();renderGallery();return true;
 }
-$('gallery-allow').onclick=()=>{gallery={...gallery,choice:'allowed'};persistGallery();renderGallery();$('gallery-dialog').close();toast('고른에서 정리할 사진을 선택해 주세요.');};
+$('gallery-allow').onclick=()=>{gallery={...gallery,choice:'allowed'};persistGallery();renderGallery();$('gallery-dialog').close();$('photo-input').click();};
 function declineGallery(){gallery={choice:'declined',summary:null};persistGallery();renderGallery();}
 $('gallery-deny').onclick=()=>{declineGallery();$('gallery-dialog').close();};
 $('gallery-dialog').addEventListener('cancel',()=>{declineGallery();});
@@ -182,7 +182,53 @@ function mountPhotos(){
  $('album-tabs').replaceChildren(...albums.map(album=>{const button=node('button','',album.label);button.type='button';button.setAttribute('aria-pressed',String(state.album===album.id));button.onclick=()=>{state.album=album.id;mountPhotos();$('album-scroll').scrollTop=0;};return button;}));
  updatePhotoStatus();
 }
-$('album-expand').onclick=()=>$('photo-input').click();
+// Swipe to select, like the iPhone Photos app: a sideways swipe starts selecting (vertical swipes keep scrolling),
+// the range from the first photo to the one under the finger takes the start photo's opposite state.
+const swipe={active:false};
+function tileAt(x,y){return document.elementFromPoint(x,y)?.closest('#photo-grid .album-photo:not(.skeleton)');}
+function paintTile(tile){const on=state.included.has(tile.dataset.id),check=tile.querySelector('.thumb-check');if(check)check.checked=on;const tick=tile.querySelector('.album-tick');if(tick)tick.textContent=on?'✓':'';}
+function applySwipe(tile){
+ const tiles=[...$('photo-grid').querySelectorAll('.album-photo:not(.skeleton)')],end=tiles.indexOf(tile);if(end<0||end===swipe.last)return;swipe.last=end;
+ const [from,to]=swipe.start<end?[swipe.start,end]:[end,swipe.start];let blocked=false;
+ tiles.forEach((t,i)=>{const id=t.dataset.id,inRange=i>=from&&i<=to,want=inRange?swipe.select:swipe.before.has(id);
+  if(want&&!state.included.has(id)){if(state.included.size>=MAX_FILES){blocked=true;return;}state.included.add(id);}else if(!want)state.included.delete(id);paintTile(t);});
+ if(blocked&&!swipe.warned){swipe.warned=true;toast(`한 번에 최대 ${MAX_FILES}장까지 골라주세요.`);}
+ updatePhotoStatus();
+}
+function swipeAutoScroll(){
+ if(!swipe.selecting)return;const box=$('album-scroll').getBoundingClientRect(),edge=40;
+ const dy=swipe.y<box.top+edge?-8:swipe.y>box.bottom-edge?8:0;
+ if(dy){$('album-scroll').scrollTop+=dy;const t=tileAt(swipe.x,swipe.y);if(t)applySwipe(t);}
+ swipe.raf=requestAnimationFrame(swipeAutoScroll);
+}
+$('photo-grid').addEventListener('pointerdown',event=>{
+ if(event.button!==0)return;const tile=tileAt(event.clientX,event.clientY);if(!tile)return;
+ Object.assign(swipe,{active:true,selecting:false,pointer:event.pointerId,mouse:event.pointerType==='mouse',x0:event.clientX,y0:event.clientY,x:event.clientX,y:event.clientY,tile});
+});
+$('photo-grid').addEventListener('pointermove',event=>{
+ if(!swipe.active||event.pointerId!==swipe.pointer)return;swipe.x=event.clientX;swipe.y=event.clientY;
+ if(!swipe.selecting){
+  const dx=Math.abs(swipe.x-swipe.x0),dy=Math.abs(swipe.y-swipe.y0);
+  if(swipe.mouse?Math.max(dx,dy)<6:dx<10&&dy<10)return;
+  if(!swipe.mouse&&dy>=dx){swipe.active=false;return;}// vertical finger move: let the album scroll
+  const tiles=[...$('photo-grid').querySelectorAll('.album-photo:not(.skeleton)')];
+  Object.assign(swipe,{selecting:true,warned:false,last:-1,start:tiles.indexOf(swipe.tile),select:!state.included.has(swipe.tile.dataset.id),before:new Set(state.included)});
+  state.albumConfirmed=false;$('photo-grid').classList.add('swiping');try{$('photo-grid').setPointerCapture(event.pointerId);}catch{}
+  applySwipe(swipe.tile);swipe.raf=requestAnimationFrame(swipeAutoScroll);
+ }
+ const tile=tileAt(swipe.x,swipe.y);if(tile)applySwipe(tile);
+});
+function endSwipe(){
+ if(!swipe.active)return;const was=swipe.selecting;swipe.active=false;swipe.selecting=false;cancelAnimationFrame(swipe.raf);
+ if(was){$('photo-grid').classList.remove('swiping');swipe.justSwiped=true;setTimeout(()=>{swipe.justSwiped=false;},0);mountPhotos();}
+}
+for(const type of ['pointerup','pointercancel'])$('photo-grid').addEventListener(type,endSwipe);
+// While selecting, stop the page from scrolling under the finger; after a swipe, ignore the click it leaves behind.
+$('photo-grid').addEventListener('touchmove',event=>{if(swipe.selecting)event.preventDefault();},{passive:false});
+$('photo-grid').addEventListener('click',event=>{if(swipe.justSwiped){event.preventDefault();event.stopPropagation();}},true);
+$('photo-grid').addEventListener('dragstart',event=>event.preventDefault());
+// Ask about device photos only when the user wants to load their own photos, not for the sample album.
+$('album-expand').onclick=()=>{if(gallery.choice==='allowed')$('photo-input').click();else $('gallery-dialog').showModal();};
 $('confirm-photos').onclick=()=>{state.albumConfirmed=!state.albumConfirmed;if(state.albumConfirmed&&!validRequestedCount())state.pickCountMode='1';mountPhotos();};
 function clearPhotos(){state.aiReview=null;state.version++;for(const p of state.photos)if(p.originalUrl)URL.revokeObjectURL(p.originalUrl);state.photos=[];state.included.clear();state.chosen.clear();state.cleanup.clear();state.candidates=[];state.result=null;state.demo=null;state.albumConfirmed=false;state.faceFailed=false;$('story').value='';mountPhotos();}
 async function importFiles(files, demoItems=null, {autoSelect=true,metadata=[]}={}) {
@@ -192,7 +238,7 @@ async function importFiles(files, demoItems=null, {autoSelect=true,metadata=[]}=
   files=files.filter(file=>!known.has(`${file.name}:${file.size}:${file.lastModified}`));
   if(autoSelect&&state.photos.length+files.length>MAX_FILES){toast(`한 번에 최대 ${MAX_FILES}장까지 골라주세요.`);return;}
   if(!files.length)return;
-  if(!gallery.summary)acceptGallery(files);
+  if(!gallery.summary&&!metadata.some(m=>m?.sample))acceptGallery(files);// sample album is not the user's device photos
   const version=state.version,token=++importToken;state.reading++;let complete=0,failures=0;
   state.albumConfirmed=false;
   const placeholders=files.map((file,i)=>({...metadata[i],id:uid(),name:file.name,file,loading:true}));state.photos.push(...placeholders);mountPhotos();$('photo-progress').hidden=false;
@@ -457,5 +503,5 @@ $('viewer-stage').addEventListener('touchstart',(event)=>{if(event.touches.lengt
 $('viewer-stage').addEventListener('touchmove',(event)=>{if(event.touches.length===2&&pinchDistance){event.preventDefault();const distance=Math.hypot(event.touches[0].clientX-event.touches[1].clientX,event.touches[0].clientY-event.touches[1].clientY);state.zoom=Math.min(6,Math.max(1,pinchZoom*distance/pinchDistance));updateZoom();}},{passive:false});
 $('viewer-stage').addEventListener('touchend',()=>{pinchDistance=0;},{passive:true});
 window.addEventListener('pagehide',()=>state.photos.forEach(p=>{if(p.originalUrl)URL.revokeObjectURL(p.originalUrl);}));
-async function init(){refreshContext();mountPhotos();renderGallery();if(new URLSearchParams(location.search).get('start')==='pick')goOrganize();else show('home');if(!gallery.choice)$('gallery-dialog').showModal();state.refs=await getRefs(state.settings);await fetchAIStatus();}
+async function init(){refreshContext();mountPhotos();renderGallery();if(new URLSearchParams(location.search).get('start')==='pick')goOrganize();else show('home');state.refs=await getRefs(state.settings);await fetchAIStatus();}
 init();
