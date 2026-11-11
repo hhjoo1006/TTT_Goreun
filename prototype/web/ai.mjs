@@ -9,5 +9,5 @@ export function reviewResult(review,photos,count){
 }
 export function analysisPayload(photos,refs,settings,story,count){
  const wire=p=>({id:p.id,mimeType:'image/jpeg',data:p.data.includes(',')?p.data.split(',')[1]:p.data});
- return {consent:true,photos:photos.map(wire),references:refs.slice(0,10).map(wire),settings:{target:settings.target,subjects:settings.subjects,criteria:settings.criteria,sns:settings.target==='influencer'?settings.sns:''},story,count};
+ return {consent:true,photos:photos.map(wire),references:refs.slice(0,10).map(wire),settings:{target:settings.target,subjects:settings.subjects,criteria:settings.criteria,sns:'Instagram'},story,count};
 }

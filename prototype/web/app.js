@@ -1,3 +1,4 @@
+import { makeZip } from './zip.mjs';
 import { albums, sampleAlbum, albumPhotos } from './album.mjs';
 import { comparisonCrop, comparisonFaces } from './comparison.mjs';
 import { decodeFile, detectFaces, mapLimited, MAX_FILES } from './photos.mjs';
@@ -8,6 +9,7 @@ import {summarizeMedia,loadGallery,saveGallery} from './gallery.mjs';
 
 const $ = (id) => document.getElementById(id);
 const icons = {
+  instagram:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".7"/>',
   home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
   chosen:'<path d="M14 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9m-5-7 3 3 6-7"/><circle cx="8" cy="9" r=".8"/>',
   photo:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/>',
@@ -55,19 +57,16 @@ async function switchSettingsRefs() {
 }
 function renderSettingsOptions() {
   const draft=state.draft;
-  $('target-options').replaceChildren(...targets.map((t)=>choice(t.label,t.id,'target',draft.target===t.id,'radio',t.icon)));
-  $('subject-options').replaceChildren(...subjects.map((s)=>choice(s,s,'subject',draft.subjects.includes(s))));
-  $('sns-options').replaceChildren(...['Instagram','Threads','Facebook'].map((s)=>choice(s,s,'sns',draft.sns===s,'radio')));
   $('criteria-options').replaceChildren(...criteria.map((c)=>{
     const label=node('label','criterion'),input=node('input');input.type='checkbox';input.name='criterion';input.value=c.id;input.checked=draft.criteria.includes(c.id);label.innerHTML=icon(c.id);label.append(node('span','',c.label),input);return label;
   }));
-  $('sns-settings').hidden=draft.target!=='influencer';$('sns-account').value=draft.account;
+
 }
 async function openSettings() {
   if(state.controller){toast('분석을 취소한 뒤 설정을 바꿔주세요.');return;}
-  state.settingsReturn=state.screen==='home'?'home':'organize';state.draft=structuredClone(state.settings);
+  state.settingsReturn=state.screen==='home'?'home':'organize';state.draft=structuredClone(state.settings);state.draft.sns='Instagram';
   $('settings-eyebrow').textContent=state.settings.configured?'언제든 바꿀 수 있어요':'처음 한 번만 설정해요';
-  $('settings-title').textContent=state.settings.configured?'내 취향과 정리 기준.':'내가 남길 사진의 기준.';
+  $('settings-title').textContent=state.settings.configured?'내 취향과 공통 기준.':'내 취향과 공통 기준.';
   $('save-settings').innerHTML=(state.settings.configured?'설정 저장':'저장하고 사진 고르기')+icon('arrow');
   $('default-settings').hidden=state.settings.configured;
   renderSettingsOptions();show('settings');await switchSettingsRefs();
@@ -81,16 +80,12 @@ function renderTaste() {
     card.append(image,remove);$('taste-grid').append(card);
   }
   if(state.settingsRefs.length<10){const add=node('button','taste-empty','+');add.type='button';add.setAttribute('aria-label','내 취향 사진 추가');add.onclick=()=>$('taste-input').click();$('taste-grid').append(add);}
-  const profile=state.draft.target==='influencer'?`${state.draft.sns} 취향`:targets.find(t=>t.id===state.draft.target).label+' 취향';
+  const profile='내 인스타 취향';
   $('taste-note').textContent=`${profile} · ${state.settingsRefs.length}/10장. 사진을 고르지 않고 시작해도 돼요.`;
 }
 $('settings-form').addEventListener('change',async(event)=>{
   const input=event.target;
-  if(input.name==='target'){state.draft.target=input.value;$('sns-settings').hidden=input.value!=='influencer';await switchSettingsRefs();}
-  if(input.name==='subject')state.draft.subjects=[...document.querySelectorAll('[name=subject]:checked')].map(el=>el.value);
-  if(input.name==='sns'){state.draft.sns=input.value;await switchSettingsRefs();}
   if(input.name==='criterion')state.draft.criteria=[...document.querySelectorAll('[name=criterion]:checked')].map(el=>el.value);
-  if(input.id==='sns-account')state.draft.account=input.value.trim();
 });
 $('add-taste').onclick=()=>$('taste-input').click();
 $('taste-input').onchange=async(event)=>{
@@ -107,12 +102,12 @@ $('taste-input').onchange=async(event)=>{
 async function persistSettings() {
   if(state.refsLoading||state.tasteReading)return;
   if(!state.draft.subjects.length){toast('정리할 사진 대상을 하나 이상 골라주세요.');return;}
-  state.draft.account=$('sns-account').value.trim();state.draft.configured=true;state.settings=structuredClone(state.draft);state.refs=[...state.settingsRefs];
+  state.draft.sns='Instagram';state.draft.configured=true;state.settings=structuredClone(state.draft);state.refs=[...state.settingsRefs];
   try{saveSettings(state.settings);}catch{toast('설정을 기기에 저장하지 못했어요. 이번 실행에만 적용돼요.');}
   state.aiReview=null;refreshContext();show(state.settingsReturn||'organize');
 }
 $('settings-form').onsubmit=(event)=>{event.preventDefault();persistSettings();};$('default-settings').onclick=persistSettings;
-for(const id of ['open-settings','nav-settings','edit-settings'])$(id).onclick=openSettings;
+for(const id of ['open-settings','nav-settings','edit-settings','home-taste'])$(id).onclick=openSettings;
 function goHome(){state.controller?.abort();show('home');}
 function goOrganize(){state.controller?.abort();refreshContext();show('organize');ensureAlbum();}
 $('nav-home').onclick=goHome;$('back-home').onclick=goHome;
@@ -120,16 +115,8 @@ $('nav-organize').onclick=goOrganize;$('home-start').onclick=goOrganize;
 let gallery=loadGallery();
 function persistGallery(){try{saveGallery(gallery);}catch{toast('연결 정보는 이번 실행에서만 유지돼요.');}}
 // Fixed prototype scenario: 60 GB of photos + 36 GB of videos = 75% of 128 GB.
-function renderGallery(){
- const size=$('gallery-size');size.replaceChildren(document.createTextNode('96'),node('span','','GB'),node('span','storage-percent','75% 사용'));
- $('gallery-status').textContent='정리가 필요해요.';
- $('gallery-photo-count').textContent='12,000장 · 60 GB';
- $('gallery-video-count').textContent='180개 · 36 GB';
- $('gallery-photo-bar').style.width='46.875%';
- $('gallery-video-bar').style.width='28.125%';
- $('gallery-usage-bar').setAttribute('aria-label','전체 128 GB 중 사진 60 GB, 영상 36 GB, 합계 96 GB로 75% 사용');
- $('gallery-breakdown').hidden=false;
-}
+function renderGallery(){}
+
 function acceptGallery(files){
   const summary=summarizeMedia(files);
   if(!summary.photos.count&&!summary.videos.count){toast('선택한 사진·영상이 없어 연결하지 않았어요.');return false;}
@@ -288,29 +275,29 @@ $('back-to-photos').onclick=()=>show('organize');
 function resultPhoto(id){return state.photos.find(p=>p.id===id);}
 function toggleChosen(id){state.chosen.has(id)?state.chosen.delete(id):state.chosen.add(id);if(state.chosen.has(id)){state.cleanup.delete(id);if(!state.candidates.includes(id))state.candidates.push(id);}renderResults();}
 function changeFolder(id,toCleanup){
-  if(toCleanup){state.cleanup.add(id);state.candidates=state.candidates.filter(value=>value!==id);state.chosen.delete(id);toast('정리할 사진에 모았어요. 원본은 그대로예요.');}
+  if(toCleanup){state.cleanup.add(id);state.candidates=state.candidates.filter(value=>value!==id);state.chosen.delete(id);toast('이번에 고르지 않은 사진에 모았어요. 삭제하지 않아요.');}
   else{state.cleanup.delete(id);if(!state.candidates.includes(id))state.candidates.push(id);toast('남길 후보로 되돌렸어요.');}renderResults();
 }
 function renderResults(){
   const result=state.result;if(!result)return;const all=state.photos.filter(p=>state.included.has(p.id));
   $('engine-badge').textContent=result.mode==='gemini'?'Gemini 분석':result.mode==='demo'?'미리 준비한 예시':'기기에서 기본 정리';$('result-mode').textContent='비교와 선택 · 마지막 선택은 직접';
   $('result-summary').textContent=`${all.length}장 중 ${state.candidates.length}장을 후보로 모았어요. ${state.demo?'예시 설명을 참고해 직접 비교해 보세요.':'사진의 원본은 그대로예요.'}`;
-  $('applied-criteria').replaceChildren(...[...result.supported,...result.notes,`타겟: ${targets.find(t=>t.id===state.settings.target).label} · 대상: ${state.settings.subjects.join(', ')}`,state.analysisStory?`이번 기준: ${state.analysisStory}`:'스토리 없이 공통 기준으로 정리'].map(text=>node('p','',text)));
-  const tabs={candidates:`남길 후보 ${state.candidates.length}`,cleanup:`정리할 사진 ${state.cleanup.size}`,all:`전체 ${all.length}`};
+  $('applied-criteria').replaceChildren(...[...result.supported,...result.notes,'활용처: 내 인스타그램 게시물',state.analysisStory?`이번 기준: ${state.analysisStory}`:'취향 사진과 공통 기준을 참고했어요.'].map(text=>node('p','',text)));
+  const tabs={candidates:`올릴 후보 ${state.candidates.length}`,cleanup:`이번에 고르지 않은 사진 ${state.cleanup.size}`,all:`전체 ${all.length}`};
   for(const [key,text]of Object.entries(tabs)){const tab=$(`tab-${key}`);tab.textContent=text;tab.setAttribute('aria-selected',String(state.tab===key));}
   $('folder-note').textContent=state.tab==='cleanup'?'이 체험 안에 따로 모은 사진이에요. 삭제하지 않았고, 후보로 되돌릴 수 있어요.':'사진을 누르면 위에서 원본과 확대 포인트를 볼 수 있어요.';
   const photos=state.tab==='cleanup'?all.filter(p=>state.cleanup.has(p.id)):state.tab==='all'?all:state.candidates.map(resultPhoto).filter(Boolean);
   const cards=photos.map((photo)=>{
     const card=node('article','result-card'+(state.chosen.has(photo.id)?' kept':''));
     const imageButton=node('button','card-image');imageButton.type='button';imageButton.setAttribute('aria-label',`${photo.name} 비교`);imageButton.onclick=()=>{state.activeComparisonId=photo.id;state.compareIds=[photo.id,...(state.compareIds||[]).filter(id=>id!==photo.id)].slice(0,2);renderComparison();$('comparison-panel').scrollIntoView({behavior:'smooth',block:'start'});};
-    const image=node('img');image.src=photo.preview;image.alt=photo.name;const badge=node('span','card-badge',state.cleanup.has(photo.id)?'정리 검토':state.chosen.has(photo.id)?'내가 고른 사진':'남길 후보'),zoom=node('span','card-zoom');zoom.innerHTML=icon('zoom');imageButton.append(image,badge,zoom);
+    const image=node('img');image.src=photo.preview;image.alt=photo.name;const badge=node('span','card-badge',state.cleanup.has(photo.id)?'다른 사진':state.chosen.has(photo.id)?'내가 고른 사진':'올릴 후보'),zoom=node('span','card-zoom');zoom.innerHTML=icon('zoom');imageButton.append(image,badge,zoom);
     const content=node('div','card-content'),title=node('h3','',photo.name),reason=node('p','',result.reasons.get(photo.id));
-    const bottom=node('div','card-bottom'),label=node('label','keep-label'),check=node('input');check.type='checkbox';check.checked=state.chosen.has(photo.id);check.onchange=()=>toggleChosen(photo.id);label.append(check,document.createTextNode('이 사진 남기기'));
-    const move=node('button','text-button',state.cleanup.has(photo.id)?'후보로 되돌리기':'정리로 보내기');move.type='button';move.onclick=()=>changeFolder(photo.id,!state.cleanup.has(photo.id));bottom.append(label,move);content.append(title,reason,bottom);card.append(imageButton,content);return card;
+    const bottom=node('div','card-bottom'),label=node('label','keep-label'),check=node('input');check.type='checkbox';check.checked=state.chosen.has(photo.id);check.onchange=()=>toggleChosen(photo.id);label.append(check,document.createTextNode('이 사진으로 고르기'));
+    const move=node('button','text-button',state.cleanup.has(photo.id)?'후보로 되돌리기':'이번에는 빼기');move.type='button';move.onclick=()=>changeFolder(photo.id,!state.cleanup.has(photo.id));bottom.append(label,move);content.append(title,reason,bottom);card.append(imageButton,content);return card;
   });
   $('result-grid').replaceChildren(...cards);if(!cards.length)$('result-grid').append(node('p','helper','여기에 모인 사진이 없어요. 다른 분류를 확인해 주세요.'));
   $('selected-count').textContent=`${state.chosen.size}장`;$('finish').disabled=!state.chosen.size;
-  $('feedback-panel').hidden=state.settings.target!=='influencer';$('feedback-sns').textContent=state.settings.sns;
+  $('feedback-panel').hidden=false;$('feedback-sns').textContent='Instagram';
   renderComparison();
 }
 for(const key of ['candidates','cleanup','all'])$(`tab-${key}`).onclick=()=>{state.tab=key;renderResults();};
@@ -379,7 +366,7 @@ function renderComparePair(container,photos,modal=false){
   const button=node('button','compare-open');button.type='button';button.setAttribute('aria-label',`${photo.name} 포인트 크게 비교`);button.onclick=()=>{if(!modal)$('compare-dialog').showModal();else openViewer(photos,photo.id);renderComparison();};
   const canvas=node('canvas');canvas.width=600;canvas.height=600;canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`${photo.name} ${compareModes.find(m=>m[0]===mode)[1]} 확대`);button.append(canvas);drawComparison(photo,mode,canvas,marker);
   const caption=node('figcaption'),name=node('strong','',index===0?'기준 사진':'비교하는 사진'),reason=node('p','',state.result.reasons.get(photo.id));caption.append(name,reason);
-  const label=node('label','keep-label compare-keep'),check=node('input');check.type='checkbox';check.checked=state.chosen.has(photo.id);check.onchange=()=>toggleChosen(photo.id);label.append(check,document.createTextNode('이 사진 남기기'));
+  const label=node('label','keep-label compare-keep'),check=node('input');check.type='checkbox';check.checked=state.chosen.has(photo.id);check.onchange=()=>toggleChosen(photo.id);label.append(check,document.createTextNode('이 사진으로 고르기'));
   figure.append(context,button,caption,label);return figure;
  }));
 }
@@ -416,7 +403,7 @@ $('close-compare').onclick=$('done-compare').onclick=()=>$('compare-dialog').clo
 $('apply-feedback').onclick=()=>{const feedback=$('feedback').value.trim();if(!feedback){toast('다시 고를 기준을 적어주세요.');return;}$('story').value=feedback;try{localStorage.setItem(`goreun-feedback:${profileKey(state.settings)}`,feedback);}catch{}analyze();};
 function renderDone(){
   const all=state.photos.filter(p=>state.included.has(p.id)),plan=partitionPhotos(all,state.chosen,state.cleanup);
-  $('done-summary').textContent='내가 고른 사진은 남고, 나머지 사진은 정리 폴더에 보관됩니다.';
+  $('done-summary').textContent=`${plan.selected.length}장을 골랐어요. 다른 사진도 삭제하지 않고 이 체험 안에 따로 모았어요.`;
   $('chosen-grid').replaceChildren(...plan.selected.map(photo=>{const button=node('button');button.type='button';button.setAttribute('aria-label',`${photo.name} 확대`);const image=node('img');image.src=photo.preview;image.alt=photo.name;button.append(image);button.onclick=()=>openViewer(plan.selected,photo.id);return button;}));
   $('remember-choice').disabled=false;$('remember-choice').innerHTML=icon('heart')+'내 취향에 저장';
   show('done');
@@ -427,7 +414,18 @@ $('remember-choice').onclick=async()=>{
   const refs=[...state.refs,...chosen].slice(-10);
   try{await saveTaste(profileKey(state.settings),refs);state.refs=refs;$('remember-choice').textContent='취향에 저장했어요';$('remember-choice').disabled=true;toast('다음 정리에 이 색감과 밝기를 참고해요.');}catch{toast('기기에 저장하지 못했어요. 저장 공간이나 브라우저 설정을 확인해 주세요.');}
 };
-$('coming-sns').onclick=$('coming-photobook').onclick=()=>toast('준비중입니다.');
+$('coming-sns').onclick=()=>window.open('https://www.instagram.com/','_blank','noopener,noreferrer');
+$('connect-instagram').onclick=()=>$('instagram-dialog').showModal();
+$('close-instagram').onclick=()=>$('instagram-dialog').close();
+$('instagram-add-photos').onclick=()=>{$('instagram-dialog').close();$('taste-input').click();};
+$('story-presets').onclick=(event)=>{const button=event.target.closest('button');if(!button)return;$('story').value=button.textContent;$('story').dispatchEvent(new Event('input'));};
+$('download-selected').onclick=async()=>{
+ const button=$('download-selected');button.disabled=true;
+ try{const photos=state.photos.filter(p=>state.chosen.has(p.id));if(!photos.length)return;
+ const entries=await Promise.all(photos.map(async(p,i)=>({path:`인스타에 올릴 사진/${i+1}-${p.name.replace(/[\\/:*?"<>|]/g,'_')}`,blob:p.file||await(await fetch(p.originalUrl||p.preview)).blob()})));
+ const zip=await makeZip(entries),url=URL.createObjectURL(zip),link=document.createElement('a');link.href=url;link.download='Goreun-내가-고른-사진.zip';link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('고른 사진을 ZIP 파일로 저장해요.');
+ }catch{toast('사진을 저장하지 못했어요. 다시 시도해 주세요.');}finally{button.disabled=false;}
+};
 $('new-session').onclick=()=>{refreshContext();renderGallery();show('home');};
 let pointerStart=null,lastTouchX=0,pinchDistance=0,pinchZoom=1;
 function updateZoom(){ $('viewer-img').style.transform=`translate(${state.pan[0]}px,${state.pan[1]}px) scale(${state.zoom})`;$('zoom-label').textContent=`${state.zoom.toFixed(state.zoom%1?1:0)}×`; }
