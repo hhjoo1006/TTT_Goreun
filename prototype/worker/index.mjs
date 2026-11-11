@@ -72,7 +72,13 @@ export async function handleAnalyze(request,env,fetcher=fetch){
  finally{clearTimeout(timer);request.signal.removeEventListener('abort',abort);inFlight--;}
 }
 export default {async fetch(request,env){
- const path=new URL(request.url).pathname;
+ const url=new URL(request.url);
+ if(['/app','/landing','/landing/','/landing/index.html'].includes(url.pathname)){
+  url.pathname=url.pathname==='/app'?'/app/':'/';
+  return Response.redirect(url.href,308);
+ }
+ const isApp=url.pathname.startsWith('/app/');
+ const path=isApp?url.pathname.slice(4):url.pathname;
  if(path==='/api/config')return json({gemini:!!env.GEMINI_API_KEY,model:env.GEMINI_MODEL||'gemini-3.5-flash-lite'});
  if(path==='/api/analyze')return handleAnalyze(request,env);
  if(request.method!=='GET'&&request.method!=='HEAD')return new Response('Method not allowed',{status:405});
@@ -82,7 +88,8 @@ export default {async fetch(request,env){
   return new Response('Font temporarily unavailable',{status:503});
  }
  if(redirects[path])return Response.redirect(redirects[path],302);
- const asset=assets[path==='/'?'/index.html':path];
+ const assetPath=path==='/'?'/index.html':path;
+ const asset=isApp?assets[assetPath]:(assets['/landing'+assetPath]||assets[assetPath]);
  if(!asset)return new Response('Not found',{status:404});
  const body=asset.binary?Uint8Array.from(atob(asset.data),c=>c.charCodeAt(0)):asset.data;
  return new Response(request.method==='HEAD'?null:body,{headers:{'Content-Type':asset.type,'Cache-Control':path==='/'||/\.(html|js|mjs|css)$/.test(path)?'no-cache':'public, max-age=86400','X-Content-Type-Options':'nosniff'}});

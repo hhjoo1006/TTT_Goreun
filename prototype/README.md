@@ -3,9 +3,11 @@
 홈 · 고른 · 설정으로 이어지는 화이트/블랙 모바일 사진 정리 체험입니다. 기존 통합판과 같은 Site ID와 비공개 범위를 유지합니다.
 
 ## 구조와 실행
+
+저장소 루트의 `npm run dev`로 랜딩(`/`)과 서비스(`/app/`)를 함께 실행합니다. 배포용 빌드도 두 화면을 한 Worker에 포함합니다.
 - web/: 브라우저 원본. 로컬 Pretendard 폰트, 기기 사진 준비, 비교, 갤러리 용량 집계
 - worker/index.mjs: 서버 Gemini API, 입력과 응답 검증, 정적 파일 응답
-- scripts/build.mjs: web의 필요한 파일을 Worker에 포함해 dist/server/index.js 생성. API 키는 빌드에 포함하지 않음
+- scripts/build.mjs: web과 ../landing의 필요한 파일을 Worker에 함께 포함해 dist/server/index.js 생성. API 키는 빌드에 포함하지 않음
 - npm run build / npm test
 - 로컬 실제 API 테스트: stty -echo 후 node scripts/preview.mjs 실행, 비밀 환경 설정 JSON을 stdin으로 전달. 키를 파일에 저장하지 않음
 

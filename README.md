@@ -9,32 +9,30 @@
 - `landing/`: 통합 랜딩페이지 HTML·CSS·JavaScript와 이미지, Pretendard 폰트.
 - `prototype/`: 홈·사진 선택·기준 입력·분류·비교·최종 선택 흐름이 있는 웹 체험판.
 
-## 랜딩페이지 실행
+## 하나의 사이트로 실행
+
+저장소 루트에서 Node.js로 실행합니다. 외부 npm 패키지는 필요하지 않습니다.
 
 ```sh
-cd landing
-python3 -m http.server 8768
+npm run dev
 ```
 
-브라우저에서 http://127.0.0.1:8768/ 을 엽니다.
-
-## 체험판 실행
-
-Node.js가 필요합니다. 외부 npm 패키지를 설치하지 않아도 실행할 수 있습니다.
-
-```sh
-cd prototype
-printf '{}\n' | node scripts/preview.mjs
-```
-
-브라우저에서 http://127.0.0.1:8766/ 을 엽니다. 서버 API 키가 없는 로컬 실행에서는 기기에서 기본 정리를 체험할 수 있습니다.
+- http://127.0.0.1:8766/ : 랜딩페이지
+- 랜딩의 모든 ‘올릴 사진 고르기’ 버튼 → 같은 사이트의 `/app/?start=pick` → 사진 선택
+- `/app/` : 서비스 홈으로 직접 진입 (새로고침 가능)
+- 서비스 상단 Goreun / 홈의 ‘고른 서비스 소개’ → 랜딩으로 돌아가기
+- 기존 `/landing/` 주소는 `/`로 이동합니다.
 
 ```sh
 npm run build
 npm test
 ```
 
-빌드 결과는 `prototype/dist/server/index.js`에 생성됩니다. Gemini 분석은 서버 런타임의 `GEMINI_API_KEY`가 필요하며 키는 저장소에 포함하지 않습니다. 기존 서비스에 설정된 API 키와 배포 권한은 GitHub 연결만으로 이전되지 않습니다.
+빌드 결과 `prototype/dist/server/index.js` 하나에 랜딩과 서비스, `/api/config`·`/api/analyze`를 함께 포함합니다. 배포는 저장소 루트에서 빌드하고 `prototype/dist`를 기존 Worker/Sites 배포 대상으로 사용합니다. 단순 GitHub Pages 정적 배포는 이 서버 API를 실행하지 못합니다.
+
+서버 API 키가 없는 로컬 실행에서는 기기에서 기본 정리를 체험할 수 있습니다. Gemini 분석은 서버 런타임의 `GEMINI_API_KEY`가 필요하며 키는 저장소에 포함하지 않습니다. 기존 서비스에 설정된 API 키와 배포 권한은 GitHub 연결만으로 이전되지 않습니다. 저장소 코드 반영과 운영 사이트 재배포는 별개입니다.
+
+비밀 설정을 사용한 로컬 테스트는 `prototype/README.md`의 stdin 방식을 참고하세요.
 
 ## 현재 반영된 내용
 

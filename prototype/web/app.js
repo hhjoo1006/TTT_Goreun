@@ -455,5 +455,5 @@ $('viewer-stage').addEventListener('touchstart',(event)=>{if(event.touches.lengt
 $('viewer-stage').addEventListener('touchmove',(event)=>{if(event.touches.length===2&&pinchDistance){event.preventDefault();const distance=Math.hypot(event.touches[0].clientX-event.touches[1].clientX,event.touches[0].clientY-event.touches[1].clientY);state.zoom=Math.min(6,Math.max(1,pinchZoom*distance/pinchDistance));updateZoom();}},{passive:false});
 $('viewer-stage').addEventListener('touchend',()=>{pinchDistance=0;},{passive:true});
 window.addEventListener('pagehide',()=>state.photos.forEach(p=>{if(p.originalUrl)URL.revokeObjectURL(p.originalUrl);}));
-async function init(){refreshContext();mountPhotos();renderGallery();show('home');if(!gallery.choice)$('gallery-dialog').showModal();state.refs=await getRefs(state.settings);await fetchAIStatus();}
+async function init(){refreshContext();mountPhotos();renderGallery();if(new URLSearchParams(location.search).get('start')==='pick')goOrganize();else show('home');if(!gallery.choice)$('gallery-dialog').showModal();state.refs=await getRefs(state.settings);await fetchAIStatus();}
 init();

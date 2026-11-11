@@ -1,0 +1,9 @@
+{
+  "name": "goreun",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm --prefix prototype run build",
+    "test": "npm --prefix prototype test"
+  }
+}

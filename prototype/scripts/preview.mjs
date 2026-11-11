@@ -10,9 +10,14 @@ const types={html:'text/html',css:'text/css',js:'text/javascript',mjs:'text/java
 const server=createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,'http://127.0.0.1:8766');
+  if(['/app','/landing','/landing/','/landing/index.html'].includes(url.pathname)){
+   res.writeHead(308,{Location:(url.pathname==='/app'?'/app/':'/')+url.search}).end();return;
+  }
   if(!url.pathname.startsWith('/api/')){
-   const path=decodeURIComponent(url.pathname==='/'?'/index.html':url.pathname);if(path.includes('..')){res.writeHead(404).end();return;}
-   const data=await readFile(new URL('../web'+path,import.meta.url));res.writeHead(200,{'Content-Type':types[path.split('.').pop()]||'application/octet-stream','Cache-Control':'no-cache'}).end(data);return;
+   const isApp=url.pathname.startsWith('/app/');
+   const relative=isApp?url.pathname.slice(4):url.pathname;
+   const path=decodeURIComponent(relative==='/'?'/index.html':relative);if(path.includes('..')){res.writeHead(404).end();return;}
+   const data=await readFile(new URL((isApp?'../web':'../../landing')+path,import.meta.url));res.writeHead(200,{'Content-Type':types[path.split('.').pop()]||'application/octet-stream','Cache-Control':'no-cache'}).end(data);return;
   }
   const body=[];for await(const chunk of req)body.push(chunk);
   const request=new Request(url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:Buffer.concat(body)}:{})});
