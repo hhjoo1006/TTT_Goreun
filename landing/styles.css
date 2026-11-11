@@ -18,3 +18,7 @@
 @media(max-width:700px){.pricing-section{grid-template-columns:1fr;gap:28px;padding-top:50px;padding-bottom:55px}.pricing-card{padding:26px}.pricing-price{font-size:54px}.pricing-section .section-heading h2{font-size:30px}}
 
 .instagram-taste-banner{display:flex;align-items:center;gap:9px;padding:12px 14px;margin-top:12px;border:1px solid #e6e6e8;border-radius:10px;background:#fff;font-size:12px;line-height:1.5}.instagram-taste-banner svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.5;flex-shrink:0}.instagram-taste-banner small{margin-left:auto;color:#888;font-size:10px;white-space:nowrap}
+
+/* Hide only the one-pixel dark edge embedded in candidate 3. */
+.demo-original>img[src$="ig-balcony.jpg"]{width:auto;max-width:100%;height:100%;aspect-ratio:1;margin-inline:auto;clip-path:inset(0 0 0 1px)}
+.demo-details img[src$="ig-balcony.jpg"]{clip-path:inset(0 0 0 1px)}
