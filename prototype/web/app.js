@@ -1,4 +1,4 @@
-import { applyEntryTitle, applyEntryButton } from './entry-copy.mjs?v=pet-1';
+import { applyEntryTitle, applyEntryButton } from './entry-copy.mjs?v=pet-2';
 import { makeZip } from './zip.mjs';
 import { albums, albumPhotos } from './album.mjs';
 import { comparisonCrop, comparisonFaces } from './comparison.mjs';
