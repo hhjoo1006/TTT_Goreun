@@ -1,3 +1,4 @@
+import {createSamplePhotos, prepareSamplePhotos} from './sample-photos.mjs';
 import { pickCriteria, selectionStory } from './pick-criteria.mjs';
 import { applyEntryTitle, applyEntryButton, applyEntryDescription } from './entry-copy.mjs?v=influencer-1-pet-3';
 import { makeZip } from './zip.mjs';
@@ -128,14 +129,11 @@ function acceptGallery(files){
 function refreshContext() {}
 state.album='device';state.albumConfirmed=false;
 let catalogLoaded=false,catalogLoading=false;
-async function ensureAlbum(){
- if(catalogLoaded||state.reading)return;
- catalogLoaded=true;catalogLoading=true;mountPhotos();
- try{
-  const files=await mapLimited(sampleAlbum,async item=>{const response=await fetch(`assets/album/${item.asset}.jpg`);if(!response.ok)throw new Error('앨범을 준비하지 못했어요.');return new File([await response.blob()],item.name,{type:'image/jpeg'});});
-  await importFiles(files,null,{autoSelect:false,metadata:sampleAlbum.map(p=>({...p,sample:true}))});
- }catch{catalogLoaded=false;toast('예시 앨범을 열지 못했어요. 내 사진으로 시작할 수 있어요.');}
- finally{catalogLoading=false;mountPhotos();}
+function ensureAlbum(){
+ if(catalogLoaded)return;
+ catalogLoaded=true;
+ state.photos.push(...createSamplePhotos(sampleAlbum, location.href));
+ mountPhotos();
 }
 
 function visibleAlbumPhotos(){const photos=state.albumConfirmed?state.photos:state.photos.filter(photo=>state.album==='device'?!photo.sample:photo.sample);return albumPhotos(photos,state.album==='device'?'recent':state.album,state.included,state.albumConfirmed);}
@@ -172,7 +170,7 @@ function photoTile(photo) {
  const tile=node('div','photo-thumb album-photo'+(photo.loading?' skeleton':''));tile.dataset.id=photo.id;
  if(photo.loading){tile.setAttribute('aria-label',`${photo.name} 준비 중`);return tile;}
  const label=node('label','album-photo-label'),check=node('input','thumb-check');check.type='checkbox';check.checked=state.included.has(photo.id);check.setAttribute('aria-label',`${photo.name} 정리 대상으로 선택`);
- const image=node('img');image.src=photo.thumb;image.alt=photo.name;image.loading='lazy';const tick=node('span','album-tick',check.checked?'✓':'');tick.setAttribute('aria-hidden','true');
+ const image=node('img');image.loading='lazy';image.decoding='async';image.alt=photo.name;image.src=photo.thumb;const tick=node('span','album-tick',check.checked?'✓':'');tick.setAttribute('aria-hidden','true');
  check.onchange=()=>{if(check.checked&&state.included.size>=MAX_FILES){check.checked=false;toast(`한 번에 최대 ${MAX_FILES}장까지 골라주세요.`);return;}check.checked?state.included.add(photo.id):state.included.delete(photo.id);state.albumConfirmed=false;mountPhotos();};label.append(check,image,tick);
  tile.append(label);return tile;
 }
@@ -290,6 +288,8 @@ async function analyze(localOnly=false) {
   const engine=localOnly?'local':state.aiAvailable?await chooseEngine(photos):'local';if(!engine)return;
   state.faceFailed=false;state.aiReview=null;const controller=new AbortController();state.controller=controller;show('loading');
   try{
+    await prepareSamplePhotos(photos,{signal:controller.signal});
+    checkAbort(controller.signal);
     if(engine==='gemini'){
       const payload=analysisPayload(photos,state.refs,state.settings,currentStory(),Number($('candidate-limit').value));
       const response=await bounded(fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal}),controller.signal,65000);
