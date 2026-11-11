@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {classify, partitionPhotos, parseStory} from '../web/engine.mjs';
+import {makeZip} from '../web/zip.mjs';
+import {writeFile} from 'node:fs/promises';
+const metrics={brightness:.55,sharpness:.7,saturation:.3,warmth:.1,darkRatio:0,hash:Array(64).fill(0)};
+const photo=(id,face)=>({id,metrics:{...metrics},face});
+test('manual choice always wins, each original appears once',()=>{const p=[photo('a'),photo('b'),photo('c'),photo('a')];const result=partitionPhotos(p,new Set(['a']),new Set(['a','b']));assert.deepEqual(Object.fromEntries(Object.entries(result).map(([k,v])=>[k,v.map(p=>p.id)])),{selected:['a'],cleanup:['b'],later:['c']});});
+test('eye-open instruction prefers open face and explains closed cleanup',()=>{const p=[photo('closed',{blink:.95,smile:0}),photo('open',{blink:.02,smile:.7}),photo('neutral',{blink:.05,smile:.02})];const result=classify(p,{criteria:['eyes']},[],'눈을 뜬 사진을 남겨줘',2);assert.deepEqual(new Set(result.candidateIds),new Set(['open','neutral']));assert.match(result.reasons.get('closed'),/눈 감음/);assert.equal(result.candidateIds.length+result.cleanupIds.length,3);});
+test('smile and neutral pair, count is respected',()=>{const p=[photo('happy',{smile:.8}),photo('neutral',{smile:.01}),photo('other',{smile:.5})];assert.deepEqual(classify(p,{criteria:[]},[],'웃는 사진과 무표정 사진',2).candidateIds,['happy','neutral']);assert.equal(classify(p,{criteria:[]},[],'웃는 사진과 무표정 사진',1).candidateIds.length,1);});
+test('eye-closed exclusion is not interpreted as preference',()=>{assert.equal(parseStory('눈 감은 사진은 제외해줘').closed,false);assert.equal(parseStory('눈 감은 사진은 제외해줘').open,true);});
+test('ZIP preserves unicode folders and file bytes',async()=>{const blob=await makeZip([{path:'고른/사진.txt',blob:new Blob(['남길 순간'])},{path:'정리/사진.txt',blob:new Blob(['확인할 순간'])}]);await writeFile('/private/tmp/goreun-zip-test.zip',new Uint8Array(await blob.arrayBuffer()));});
