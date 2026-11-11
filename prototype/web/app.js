@@ -110,9 +110,9 @@ async function persistSettings() {
 $('settings-form').onsubmit=(event)=>{event.preventDefault();persistSettings();};$('default-settings').onclick=persistSettings;
 for(const id of ['nav-settings','edit-settings','home-taste'])$(id).onclick=openSettings;
 function goHome(){state.controller?.abort();show('home');}
-function goOrganize(){state.controller?.abort();refreshContext();show('organize');ensureAlbum();}
+function goOrganize({pickDevice=false}={}){state.controller?.abort();refreshContext();show('organize');if(pickDevice)$('photo-input').click();else ensureAlbum();}
 $('nav-home').onclick=goHome;$('back-home').onclick=goHome;
-$('nav-organize').onclick=goOrganize;$('home-start').onclick=goOrganize;
+$('nav-organize').onclick=goOrganize;$('home-start').onclick=()=>goOrganize({pickDevice:true});
 let gallery=loadGallery();
 function persistGallery(){try{saveGallery(gallery);}catch{toast('연결 정보는 이번 실행에서만 유지돼요.');}}
 // Fixed prototype scenario: 60 GB of photos + 36 GB of videos = 75% of 128 GB.
