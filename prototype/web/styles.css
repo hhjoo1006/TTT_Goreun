@@ -104,3 +104,13 @@ body[data-screen=organize] #story{font-size:16px;line-height:24px}body[data-scre
 .album-empty{display:grid;place-items:center;min-height:260px;padding:34px 16px;margin:0}.empty-photo-picker{display:flex;flex-direction:column;align-items:center;gap:18px;padding:24px 32px;border:0;background:transparent;color:#555;font:inherit;font-size:15px;cursor:pointer}.empty-photo-plus{display:grid;place-items:center;width:72px;height:72px;border:1px solid #dedede;border-radius:18px;background:#fafafa;color:#171717;font-size:36px;font-weight:300;line-height:1}.empty-photo-picker:hover .empty-photo-plus{background:#f0f0f0}.empty-photo-picker:disabled{opacity:.4;cursor:default}.album-empty[hidden]{display:none}
 
 .empty-photo-picker:focus-visible{outline:2px solid #ddd;outline-offset:4px}
+
+/* The optional criteria chooser is available while selecting photos. */
+.pick-criteria{border:1px solid #e7e7e7;border-radius:12px;margin:4px 0 10px;padding:0 12px}
+.pick-criteria summary{cursor:pointer;font-size:12px;line-height:1.6;padding:12px 0;font-weight:600}
+#pick-criteria-current{display:block;font-size:11px;font-weight:400;color:#777;margin-left:15px}
+.pick-criteria-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-bottom:12px}
+.pick-criterion{display:flex;align-items:center;gap:8px;min-height:44px;padding:10px;border:1px solid #e7e7e7;border-radius:9px;background:#fafafa;font-size:12px;cursor:pointer}
+.pick-criterion:has(input:checked){border-color:#111;background:#f0f0f0;font-weight:600}
+.pick-criterion input{accent-color:#111;flex-shrink:0}
+body[data-screen=organize] .organize-dock{max-height:60dvh;overflow-y:auto;overscroll-behavior:contain}
