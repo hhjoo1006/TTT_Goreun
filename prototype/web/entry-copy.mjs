@@ -1,3 +1,10 @@
+// Add targets 2–4 to this map; only title and description change.
+export const entryCampaigns = new Map([
+  ['influencer', {
+    title: ['베스트샷', '피드 올리기'],
+    description: '오늘의 베스트샷으로 피드 쉽게 올리기'
+  }],
+]);
 // Add future targets here. Only known campaign values can replace the service title.
 export const entryTitles = new Map([
   ['parents', ['우리 아기 사진 100장', '다 귀엽지만,', '올릴 사진은 고민되니까.']],
@@ -11,7 +18,8 @@ export const entryButtons = new Map([
 ]);
 const campaign = (search) => new URLSearchParams(search).get('utm_content');
 export function applyEntryTitle(title, search) {
-  const lines = entryTitles.get(campaign(search));
+  const key = campaign(search);
+  const lines = entryCampaigns.get(key)?.title || entryTitles.get(key);
   if (!title || !lines) return;
   const doc = title.ownerDocument;
   title.replaceChildren(...lines.flatMap((line, index) =>
@@ -23,4 +31,11 @@ export function applyEntryButton(button, search) {
   const text = button && [...button.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
   if (!label || !text) return;
   text.textContent = `${label} `;
+}
+
+export function applyEntryDescription(description, search) {
+  const text = entryCampaigns.get(campaign(search))?.description;
+  if (!description || !text) return;
+  description.textContent = text;
+  description.hidden = false;
 }

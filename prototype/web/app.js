@@ -1,4 +1,4 @@
-import { applyEntryTitle, applyEntryButton } from './entry-copy.mjs?v=pet-3';
+import { applyEntryTitle, applyEntryButton, applyEntryDescription } from './entry-copy.mjs?v=influencer-1-pet-3';
 import { makeZip } from './zip.mjs';
 import { albums, sampleAlbum, albumPhotos } from './album.mjs?v=daily-samples-1';
 import { comparisonCrop, comparisonFaces } from './comparison.mjs';
@@ -9,7 +9,7 @@ import {reviewResult,analysisPayload} from './ai.mjs';
 import {summarizeMedia,loadGallery,saveGallery} from './gallery.mjs';
 
 const $ = (id) => document.getElementById(id);
-applyEntryTitle($('entry-title'), location.search);applyEntryButton($('home-start'), location.search);
+applyEntryTitle($('entry-title'), location.search);applyEntryDescription($('entry-description'), location.search);applyEntryButton($('home-start'), location.search);
 const icons = {
   instagram:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".7"/>',
   home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
