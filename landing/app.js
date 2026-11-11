@@ -1,3 +1,16 @@
+// Add targets 2–4 here: each utm_content value maps only to the hero title and description.
+const landingCampaigns = new Map([
+  ['influencer', {
+    title: '베스트샷 피드 올리기',
+    description: '오늘의 베스트샷으로 피드 쉽게 올리기'
+  }]
+]);
+const landingCampaign = landingCampaigns.get(new URLSearchParams(location.search).get('utm_content'));
+if (landingCampaign) {
+  document.querySelector('.hero-copy h1').textContent = landingCampaign.title;
+  document.querySelector('.hero-description').textContent = landingCampaign.description;
+}
+
 const examples=[
  {image:'assets/ig-cafe.jpg',reason:'카페 배경과 자연스러운 표정이 함께 담겨 있어요.'},
  {image:'assets/ig-street.jpg',reason:'다른 구도에서는 옷차림과 거리 분위기가 더 잘 보여요.'},
