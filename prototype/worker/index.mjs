@@ -24,7 +24,7 @@ export function validateInput(data){
   return {id:p.id,mimeType:'image/jpeg',data:p.data};
  };
  if(typeof data.story!=='string'||data.story.length>500)throw fail('기준은 500자 이내로 적어주세요.');
- const count=Number(data.count);if(!Number.isInteger(count)||count<1||count>4)throw fail('후보 수는 1~4장이에요.');
+ const count=Number(data.count);if(!Number.isInteger(count)||count<1||count>30||count>data.photos.length)throw fail('고를 사진 수는 선택한 사진 수 이내로 입력해 주세요.');
  const settings=data.settings||{};
  return {photos:data.photos.map(p=>check(p)),references:data.references.map(p=>check(p,true)),story:data.story,count:Math.min(count,data.photos.length),settings:{target:['general','parents','influencer'].includes(settings.target)?settings.target:'general',subjects:Array.isArray(settings.subjects)?settings.subjects.filter(v=>['여행','인물','동물','음식','제품'].includes(v)):[],criteria:Array.isArray(settings.criteria)?settings.criteria.filter(v=>criteria.has(v)):[],sns:['Instagram','Threads','Facebook','X'].includes(settings.sns)?settings.sns:''}};
 }

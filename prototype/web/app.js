@@ -27,12 +27,11 @@ const icons = {
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.spark}</svg>`;
 document.querySelectorAll('[data-icon]').forEach((el) => { el.innerHTML = icon(el.dataset.icon); });
-$('open-settings').innerHTML = icon('sliders');
 const targets = [{id:'general',label:'일반',icon:'user'},{id:'parents',label:'엄마·아빠',icon:'parents'},{id:'influencer',label:'인플루언서',icon:'camera'}];
 const subjects = ['여행','인물','동물','음식','제품'];
 const criteria = [{id:'blur',label:'흔들림'},{id:'tilt',label:'구도 기울기'},{id:'duplicate',label:'중복·유사'},{id:'eyes',label:'눈 감음'},{id:'dark',label:'어두운 사진'}];
 const state = { settings:loadSettings(), draft:null, refs:[], settingsRefs:[], settingsProfile:'', photos:[], included:new Set(), chosen:new Set(), cleanup:new Set(), candidates:[], result:null,
-  demo:null, screen:'', tab:'candidates', reading:0, version:0, controller:null, focus:true, currentPhotos:[], viewerIndex:0, zoom:1, pan:[0,0], faceFailed:false, refsLoading:false, tasteReading:false, lastLimit:2, aiAvailable:false, aiReview:null, analysisStory:'', askingConsent:false, localOnly:false };
+  demo:null, screen:'', tab:'candidates', reading:0, version:0, controller:null, focus:true, currentPhotos:[], viewerIndex:0, zoom:1, pan:[0,0], faceFailed:false, refsLoading:false, tasteReading:false, lastLimit:1, pickCountMode:'1', aiAvailable:false, aiReview:null, analysisStory:'', askingConsent:false, localOnly:false };
 let toastTimer, refVersion = 0, importToken = 0;
 const uid = () => crypto.randomUUID();
 const node = (tag, cls, text) => { const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el; };
@@ -107,7 +106,7 @@ async function persistSettings() {
   state.aiReview=null;refreshContext();show(state.settingsReturn||'organize');
 }
 $('settings-form').onsubmit=(event)=>{event.preventDefault();persistSettings();};$('default-settings').onclick=persistSettings;
-for(const id of ['open-settings','nav-settings','edit-settings','home-taste'])$(id).onclick=openSettings;
+for(const id of ['nav-settings','edit-settings','home-taste'])$(id).onclick=openSettings;
 function goHome(){state.controller?.abort();show('home');}
 function goOrganize(){state.controller?.abort();refreshContext();show('organize');ensureAlbum();}
 $('nav-home').onclick=goHome;$('back-home').onclick=goHome;
@@ -126,7 +125,7 @@ $('gallery-allow').onclick=()=>{gallery={...gallery,choice:'allowed'};persistGal
 function declineGallery(){gallery={choice:'declined',summary:null};persistGallery();renderGallery();}
 $('gallery-deny').onclick=()=>{declineGallery();$('gallery-dialog').close();};
 $('gallery-dialog').addEventListener('cancel',()=>{declineGallery();});
-function refreshContext() {$('workspace-title').textContent='고른';}
+function refreshContext() {}
 state.album='recent';state.albumConfirmed=false;
 let catalogLoaded=false,catalogLoading=false;
 async function ensureAlbum(){
@@ -139,12 +138,24 @@ async function ensureAlbum(){
  finally{catalogLoading=false;mountPhotos();}
 }
 function visibleAlbumPhotos(){return albumPhotos(state.photos,state.album,state.included,state.albumConfirmed);}
+function requestedCount(){return state.pickCountMode==='custom'?Number($('pick-count-input').value):Number(state.pickCountMode);}
+function validRequestedCount(){const n=requestedCount();return Number.isInteger(n)&&n>=1&&n<=state.included.size;}
+function updateCountOptions(){
+ const max=state.included.size;
+ document.querySelectorAll('[data-pick-count]').forEach(button=>{button.setAttribute('aria-pressed',String(button.dataset.pickCount===state.pickCountMode));button.disabled=button.dataset.pickCount!=='custom'&&Number(button.dataset.pickCount)>max;});
+ $('pick-count-custom').hidden=state.pickCountMode!=='custom';$('pick-count-input').max=String(max);$('pick-count-max').textContent=`장 · 최대 ${max}장`;
+}
+document.querySelectorAll('[data-pick-count]').forEach(button=>button.onclick=()=>{state.pickCountMode=button.dataset.pickCount;updatePhotoStatus();});
+$('pick-count-input').oninput=()=>updatePhotoStatus();
 function updatePhotoStatus() {
+ updateCountOptions();
  $('photo-count').textContent=`${state.included.size}장 선택${state.albumConfirmed?' 완료':''}`;
  if(!state.albumConfirmed&&document.activeElement===$('story'))$('story').blur();
  $('story-composer').hidden=!state.albumConfirmed;
+ $('organize-disclosure').hidden=!state.albumConfirmed;
  $('confirm-photos').setAttribute('aria-expanded',String(state.albumConfirmed));
- $('analyze').disabled=state.reading>0||state.included.size<2||!state.albumConfirmed;
+ $('analyze').hidden=!state.albumConfirmed;
+ $('analyze').disabled=state.reading>0||state.included.size<2||!state.albumConfirmed||!validRequestedCount();
  $('confirm-photos').disabled=state.reading>0||catalogLoading||state.included.size<2;
  $('confirm-photos').textContent=state.albumConfirmed?'다시 선택':'선택 완료';
  $('confirm-photos').classList.toggle('secondary',state.albumConfirmed);$('confirm-photos').classList.toggle('primary',!state.albumConfirmed);
@@ -170,7 +181,7 @@ function mountPhotos(){
  updatePhotoStatus();
 }
 $('album-expand').onclick=()=>$('photo-input').click();
-$('confirm-photos').onclick=()=>{state.albumConfirmed=!state.albumConfirmed;mountPhotos();};
+$('confirm-photos').onclick=()=>{state.albumConfirmed=!state.albumConfirmed;if(state.albumConfirmed&&!validRequestedCount())state.pickCountMode='1';mountPhotos();};
 function clearPhotos(){state.aiReview=null;state.version++;for(const p of state.photos)if(p.originalUrl)URL.revokeObjectURL(p.originalUrl);state.photos=[];state.included.clear();state.chosen.clear();state.cleanup.clear();state.candidates=[];state.result=null;state.demo=null;state.albumConfirmed=false;state.faceFailed=false;$('story').value='';mountPhotos();}
 async function importFiles(files, demoItems=null, {autoSelect=true,metadata=[]}={}) {
   if(state.reading){toast('지금 고른 사진을 먼저 준비하고 있어요.');return;}
@@ -225,6 +236,8 @@ function chooseEngine(photos){
 async function analyze(localOnly=false) {
   if(state.reading||state.controller||state.askingConsent)return;
   const photos=state.photos.filter(p=>state.included.has(p.id));if(photos.length<2){toast('사진을 더 골라주세요.');return;}
+  if(!validRequestedCount()){toast('선택한 사진 수 안에서 고를 장수를 입력해 주세요.');return;}
+  const count=requestedCount();$('candidate-limit').replaceChildren(...Array.from({length:photos.length},(_,i)=>{const option=document.createElement('option');option.value=String(i+1);option.textContent=`${i+1}장`;return option;}));$('candidate-limit').value=String(count);
   const engine=localOnly?'local':state.aiAvailable?await chooseEngine(photos):'local';if(!engine)return;
   state.faceFailed=false;state.aiReview=null;const controller=new AbortController();state.controller=controller;show('loading');
   try{
@@ -270,7 +283,7 @@ $('analyze').onclick=()=>analyze();
 $('story').oninput=()=>{$('story').style.height='auto';$('story').style.height=`${Math.min(120,$('story').scrollHeight)}px`;};
 $('story').onkeydown=(event)=>{if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)&&!$('analyze').disabled){event.preventDefault();analyze();}};
 $('cancel-analysis').onclick=()=>{state.controller?.abort();show('organize');};
-$('candidate-limit').onchange=()=>{if(state.chosen.size&&!confirm('후보 수를 바꾸면 이번에 체크한 사진은 초기화돼요. 바꿀까요?')){$('candidate-limit').value=String(state.lastLimit);return;}state.chosen.clear();buildResult();};
+$('candidate-limit').onchange=()=>{if(state.chosen.size&&!confirm('후보 수를 바꾸면 이번에 체크한 사진은 초기화돼요. 바꿀까요?')){$('candidate-limit').value=String(state.lastLimit);return;}state.pickCountMode='custom';$('pick-count-input').value=$('candidate-limit').value;state.chosen.clear();buildResult();};
 $('back-to-photos').onclick=()=>show('organize');
 function resultPhoto(id){return state.photos.find(p=>p.id===id);}
 function toggleChosen(id){state.chosen.has(id)?state.chosen.delete(id):state.chosen.add(id);if(state.chosen.has(id)){state.cleanup.delete(id);if(!state.candidates.includes(id))state.candidates.push(id);}renderResults();}
@@ -418,7 +431,6 @@ $('coming-sns').onclick=()=>window.open('https://www.instagram.com/','_blank','n
 $('connect-instagram').onclick=()=>$('instagram-dialog').showModal();
 $('close-instagram').onclick=()=>$('instagram-dialog').close();
 $('instagram-add-photos').onclick=()=>{$('instagram-dialog').close();$('taste-input').click();};
-$('story-presets').onclick=(event)=>{const button=event.target.closest('button');if(!button)return;$('story').value=button.textContent;$('story').dispatchEvent(new Event('input'));};
 $('download-selected').onclick=async()=>{
  const button=$('download-selected');button.disabled=true;
  try{const photos=state.photos.filter(p=>state.chosen.has(p.id));if(!photos.length)return;
