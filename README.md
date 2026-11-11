@@ -57,3 +57,17 @@ npm test
 설정은 좋아하는 사진과 공통 기준으로 줄였습니다. 사진 선택 후 원하는 분위기를 한 줄로 적거나 예시 버튼으로 고르고, 후보를 나란히 비교한 뒤 직접 선택합니다. 선택한 사진은 ZIP으로 저장할 수 있습니다.
 
 인스타그램 계정 연동은 준비 중입니다. 버튼에서 안내를 확인하고 좋아하는 게시물 사진을 직접 추가할 수 있으며, 실제 계정 인증이나 자동 게시가 동작한다고 표시하지 않습니다.
+
+## GitHub Pages 배포
+
+`.github/workflows/static.yml`이 `main`에 push할 때 자동 실행됩니다. Actions에서 **Deploy Goreun to GitHub Pages → Run workflow**로 수동 실행할 수도 있습니다.
+
+1. 저장소 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 설정합니다.
+2. Actions에서 위 워크플로의 성공 여부를 확인합니다. 배포 단계에 표시된 URL로 접속합니다.
+3. 기본 주소는 `https://hhjoo1006.github.io/TTT_Goreun/`, 서비스 주소는 그 아래 `app/`입니다.
+
+이 워크플로는 테스트 후 `npm run build:pages`로 생성한 `dist/pages`만 배포합니다. 랜딩은 첫 화면, 네 곳의 시작 버튼은 사진 선택 화면으로 연결됩니다. 저장소 경로는 Pages 설정의 `base_path`를 사용하며 사용자 지정 도메인의 루트 경로도 지원합니다.
+
+**Pages 배포본은 기기 내 기본 정리만 제공합니다.** Gemini 서버 API와 비밀 키는 포함하지 않으며 AI 분석은 활성화되지 않습니다. 기존 `npm run build`의 서버 포함 배포 방식은 그대로 사용할 수 있습니다.
+
+로컬 빌드 확인: `npm run test:pages && npm run build:pages`. 기본 경로는 `/TTT_Goreun`이며 루트 배포를 테스트하려면 `PAGES_BASE_PATH='' npm run build:pages`를 사용합니다.
