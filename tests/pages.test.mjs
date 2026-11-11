@@ -19,7 +19,8 @@ for(const basePath of ['/TTT_Goreun',''])test(`Pages links, local config and mod
    }
   }
   const landing=await readFile(join(outDir,'index.html'),'utf8');
-  assert.equal(landing.split(`href="${basePath}/app/?start=pick"`).length-1,4);
+  assert.equal(landing.split(`href="${basePath}/app/"`).length-1,4);
+  assert.equal(landing.includes('start=pick'),false);
   const app=await readFile(join(outDir,'app/app.js'),'utf8');
   assert.ok(app.includes(`fetch('${basePath}/api/config.json'`));
   assert.deepEqual(JSON.parse(await readFile(join(outDir,'api/config.json'),'utf8')),{gemini:false});
