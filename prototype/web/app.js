@@ -1,6 +1,6 @@
 import { applyEntryTitle, applyEntryButton } from './entry-copy.mjs?v=pet-1';
 import { makeZip } from './zip.mjs';
-import { albums, sampleAlbum, albumPhotos } from './album.mjs';
+import { albums, albumPhotos } from './album.mjs';
 import { comparisonCrop, comparisonFaces } from './comparison.mjs';
 import { decodeFile, detectFaces, mapLimited, MAX_FILES } from './photos.mjs';
 import { classify, partitionPhotos, parseStory } from './engine.mjs';
@@ -45,7 +45,7 @@ function show(screen) {
   $('global-header').hidden=screen==='home';document.body.dataset.screen=screen;
   window.scrollTo({top:0,behavior:'instant'});
   const title=$(`${screen}-screen`).querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true});}
-  if(screen==='organize')$('album-expand').focus({preventScroll:true});
+  if(screen==='organize')(state.photos.length?$('album-expand'):$('empty-photo-picker')).focus({preventScroll:true});
 }
 function choice(labelText, value, name, checked, type='checkbox', glyph) {
   const label=node('label','choice'),input=node('input');input.type=type;input.name=name;input.value=value;input.checked=checked;
@@ -111,9 +111,9 @@ async function persistSettings() {
 $('settings-form').onsubmit=(event)=>{event.preventDefault();persistSettings();};$('default-settings').onclick=persistSettings;
 for(const id of ['nav-settings','edit-settings','home-taste'])$(id).onclick=openSettings;
 function goHome(){state.controller?.abort();show('home');}
-function goOrganize({pickDevice=false}={}){state.controller?.abort();refreshContext();show('organize');if(pickDevice)$('photo-input').click();else ensureAlbum();}
+function goOrganize(){state.controller?.abort();refreshContext();state.album='recent';mountPhotos();show('organize');}
 $('nav-home').onclick=goHome;$('back-home').onclick=goHome;
-$('nav-organize').onclick=goOrganize;$('home-start').onclick=()=>goOrganize({pickDevice:true});
+$('nav-organize').onclick=goOrganize;$('home-start').onclick=goOrganize;
 let gallery=loadGallery();
 function persistGallery(){try{saveGallery(gallery);}catch{toast('연결 정보는 이번 실행에서만 유지돼요.');}}
 // Fixed prototype scenario: 60 GB of photos + 36 GB of videos = 75% of 128 GB.
@@ -124,22 +124,8 @@ function acceptGallery(files){
   if(!summary.photos.count&&!summary.videos.count){toast('선택한 사진·영상이 없어 연결하지 않았어요.');return false;}
   gallery={choice:'allowed',summary};persistGallery();renderGallery();return true;
 }
-$('gallery-allow').onclick=()=>{gallery={...gallery,choice:'allowed'};persistGallery();renderGallery();$('gallery-dialog').close();$('photo-input').click();};
-function declineGallery(){gallery={choice:'declined',summary:null};persistGallery();renderGallery();}
-$('gallery-deny').onclick=()=>{declineGallery();$('gallery-dialog').close();};
-$('gallery-dialog').addEventListener('cancel',()=>{declineGallery();});
 function refreshContext() {}
 state.album='recent';state.albumConfirmed=false;
-let catalogLoaded=false,catalogLoading=false;
-async function ensureAlbum(){
- if(state.photos.length||catalogLoaded||state.reading)return;
- catalogLoaded=true;catalogLoading=true;mountPhotos();
- try{
-  const files=await mapLimited(sampleAlbum,async item=>{const response=await fetch(`assets/album/${item.asset}.jpg`);if(!response.ok)throw new Error('앨범을 준비하지 못했어요.');return new File([await response.blob()],item.name,{type:'image/jpeg'});});
-  await importFiles(files,null,{autoSelect:false,metadata:sampleAlbum.map(p=>({...p,sample:true}))});
- }catch{catalogLoaded=false;toast('예시 앨범을 열지 못했어요. 내 사진으로 시작할 수 있어요.');}
- finally{catalogLoading=false;mountPhotos();}
-}
 function visibleAlbumPhotos(){return albumPhotos(state.photos,state.album,state.included,state.albumConfirmed);}
 function requestedCount(){return state.pickCountMode==='custom'?Number($('pick-count-input').value):Number(state.pickCountMode);}
 function validRequestedCount(){const n=requestedCount();return Number.isInteger(n)&&n>=1&&n<=state.included.size;}
@@ -159,16 +145,16 @@ function updatePhotoStatus() {
  $('confirm-photos').setAttribute('aria-expanded',String(state.albumConfirmed));
  $('analyze').hidden=!state.albumConfirmed;
  $('analyze').disabled=state.reading>0||state.included.size<2||!state.albumConfirmed||!validRequestedCount();
- $('confirm-photos').disabled=state.reading>0||catalogLoading||state.included.size<2;
+ $('confirm-photos').disabled=state.reading>0||state.included.size<2;
  $('confirm-photos').textContent=state.albumConfirmed?'다시 선택':'선택 완료';
  $('confirm-photos').classList.toggle('secondary',state.albumConfirmed);$('confirm-photos').classList.toggle('primary',!state.albumConfirmed);
- $('album-expand').disabled=state.reading>0||catalogLoading;
+ $('album-expand').disabled=state.reading>0;
+ $('album-expand').hidden=!state.photos.length;
+ $('empty-photo-picker').disabled=state.reading>0;
  $('composer-status').textContent=state.reading?'사진을 준비하고 있어요…':'';
- $('album-source').textContent=state.photos.some(p=>!p.sample)?'내가 연결한 사진':'예시 앨범';
  $('album-filters').hidden=state.albumConfirmed;
  $('photo-toolbar').hidden=!state.photos.length||state.albumConfirmed;
  const visible=visibleAlbumPhotos();$('album-empty').hidden=visible.length>0;
- $('album-empty').textContent=catalogLoading?'앨범을 준비하고 있어요…':state.album==='favorites'?'즐겨찾기에 모인 사진이 없어요.':state.album==='portraits'?'이 앨범에 표시할 인물 사진이 없어요.':'이 앨범에 사진이 없어요. 다른 앨범을 골라주세요.';
 }
 function photoTile(photo) {
  const tile=node('div','photo-thumb album-photo'+(photo.loading?' skeleton':''));tile.dataset.id=photo.id;
@@ -180,7 +166,7 @@ function photoTile(photo) {
 }
 function mountPhotos(){
  $('photo-grid').replaceChildren(...visibleAlbumPhotos().map(photoTile));
- $('album-filters').replaceChildren(...albums.map(album=>{const button=node('button','',`${album.label} · 샘플`);button.type='button';button.setAttribute('aria-pressed',String(state.album===album.id));button.onclick=()=>{state.album=album.id;mountPhotos();$('album-scroll').scrollTop=0;};return button;}));
+ $('album-filters').replaceChildren(...albums.filter(album=>album.id==='recent').map(album=>{const button=node('button','',album.label);button.type='button';button.setAttribute('aria-pressed',String(state.album===album.id));button.onclick=()=>{state.album=album.id;mountPhotos();$('album-scroll').scrollTop=0;};return button;}));
  updatePhotoStatus();
 }
 // Swipe to select, like the iPhone Photos app: a sideways swipe starts selecting (vertical swipes keep scrolling),
@@ -228,8 +214,10 @@ for(const type of ['pointerup','pointercancel'])$('photo-grid').addEventListener
 $('photo-grid').addEventListener('touchmove',event=>{if(swipe.selecting)event.preventDefault();},{passive:false});
 $('photo-grid').addEventListener('click',event=>{if(swipe.justSwiped){event.preventDefault();event.stopPropagation();}},true);
 $('photo-grid').addEventListener('dragstart',event=>event.preventDefault());
-// Ask about device photos only when the user wants to load their own photos, not for the sample album.
-$('album-expand').onclick=()=>{state.album='recent';mountPhotos();$('album-scroll').scrollTop=0;if(gallery.choice==='allowed')$('photo-input').click();else $('gallery-dialog').showModal();};
+// Only an explicit photo-picker action opens the native file chooser.
+function openPhotoPicker(){if(state.reading)return;$('photo-input').click();}
+$('album-expand').onclick=openPhotoPicker;
+$('empty-photo-picker').onclick=openPhotoPicker;
 $('confirm-photos').onclick=()=>{state.albumConfirmed=!state.albumConfirmed;if(state.albumConfirmed&&!validRequestedCount())state.pickCountMode='1';mountPhotos();};
 function clearPhotos(){state.aiReview=null;state.version++;for(const p of state.photos)if(p.originalUrl)URL.revokeObjectURL(p.originalUrl);state.photos=[];state.included.clear();state.chosen.clear();state.cleanup.clear();state.candidates=[];state.result=null;state.demo=null;state.albumConfirmed=false;state.faceFailed=false;$('story').value='';mountPhotos();}
 async function importFiles(files, demoItems=null, {autoSelect=true,metadata=[]}={}) {
@@ -259,7 +247,7 @@ async function importFiles(files, demoItems=null, {autoSelect=true,metadata=[]}=
   state.reading--;if(version===state.version){mountPhotos();setTimeout(()=>{if(token===importToken)$('photo-progress').hidden=true;},1600);}
 }
 async function useDeviceFiles(files){
- if(!files.length||state.reading||catalogLoading)return;
+ if(!files.length||state.reading)return;
  if(state.photos.some(p=>p.sample))clearPhotos();
  state.album='recent';await importFiles(files);
 }
