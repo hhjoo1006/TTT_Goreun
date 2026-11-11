@@ -151,6 +151,8 @@ function updatePhotoStatus() {
  $('photo-count').textContent=`${state.included.size}장 선택${state.albumConfirmed?' 완료':''}`;
  if(!state.albumConfirmed&&document.activeElement===$('story'))$('story').blur();
  $('story-composer').hidden=!state.albumConfirmed;
+ $('pick-criteria').hidden=!state.albumConfirmed;
+ if(!state.albumConfirmed)$('pick-criteria').open=false;
  $('organize-disclosure').hidden=!state.albumConfirmed;
  $('confirm-photos').setAttribute('aria-expanded',String(state.albumConfirmed));
  $('analyze').hidden=!state.albumConfirmed;
