@@ -1,6 +1,6 @@
 import { applyEntryTitle, applyEntryButton } from './entry-copy.mjs?v=pet-3';
 import { makeZip } from './zip.mjs';
-import { albums, sampleAlbum, albumPhotos } from './album.mjs';
+import { albums, sampleAlbum, albumPhotos } from './album.mjs?v=daily-samples-1';
 import { comparisonCrop, comparisonFaces } from './comparison.mjs';
 import { decodeFile, detectFaces, mapLimited, MAX_FILES } from './photos.mjs';
 import { classify, partitionPhotos, parseStory } from './engine.mjs';

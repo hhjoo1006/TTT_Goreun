@@ -22,7 +22,7 @@ test('device photos without album metadata remain in recents',()=>{
 });
 
 test('expanded catalog contains requested photo groups without cake or flowers',()=>{
- assert.equal(sampleAlbum.length,63);
+ assert.equal(sampleAlbum.length,68);
  for(const [prefix,count] of [['baby-',10],['tram-',5],['sea-',10],['influencer-',10],['dogs-',20]])assert.equal(sampleAlbum.filter(p=>p.asset.startsWith(prefix)).length,count);
  assert.equal(sampleAlbum.some(p=>['food','flowers'].includes(p.asset)),false);
  assert.equal(albums.some(a=>['baby','sea','influencer'].includes(a.id)),false);
@@ -30,4 +30,11 @@ test('expanded catalog contains requested photo groups without cake or flowers',
  assert.equal(portraits.filter(p=>/^(baby|influencer)-/.test(p.asset)).length,20);
  assert.equal(albumPhotos(sampleAlbum,'travel',new Set()).filter(p=>p.asset.startsWith('sea-')).length,10);
  assert.equal(albumPhotos(sampleAlbum,'pets',new Set()).length,20);
+});
+
+test('daily sample album includes food and everyday outings without family photos',()=>{
+ const daily=albumPhotos(sampleAlbum,'daily',new Set());
+ assert.deepEqual(daily.map(p=>p.asset),['daily-meal','daily-cafe','daily-friends','daily-shopping','daily-walk']);
+ assert.ok(daily.some(p=>p.tags?.includes('food')));
+ assert.ok(daily.every(p=>p.folder==='daily'&&!p.asset.startsWith('family-')));
 });

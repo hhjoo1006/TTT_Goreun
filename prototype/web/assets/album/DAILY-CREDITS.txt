@@ -1,0 +1,5 @@
+Daily-life sample album assets
+Generated for Goreun on 2026-11-11 with OpenAI image generation.
+These are illustrative AI-generated sample photographs, not user-uploaded photos.
+Prompts: candid Korean daily life in natural daylight; a noodle lunch at a neighborhood restaurant (daily-meal), relaxing with coffee and a notebook (daily-cafe), friends chatting at a cafe (daily-friends), friends browsing clothes in a boutique (daily-shopping), friends walking on a neighborhood sidewalk (daily-walk).
+Optimized JPEG copies are stored beside this file; source images are preserved in the generation output.
