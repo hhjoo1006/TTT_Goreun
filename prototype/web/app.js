@@ -271,6 +271,7 @@ function checkAbort(signal){if(signal.aborted)throw new DOMException('취소됨'
 function bounded(promise,signal,ms=25000){return new Promise((resolve,reject)=>{let timer;const onAbort=()=>{clearTimeout(timer);reject(new DOMException('취소됨','AbortError'));};signal.addEventListener('abort',onAbort,{once:true});timer=setTimeout(()=>{signal.removeEventListener('abort',onAbort);reject(new Error('모델 준비 시간 초과'));},ms);promise.then(resolve,reject).finally(()=>{clearTimeout(timer);signal.removeEventListener('abort',onAbort);});});}
 async function fetchAIStatus(){
  try{const response=await fetch('/api/config',{cache:'no-store'});const data=response.ok?await response.json():{};state.aiAvailable=data.gemini===true;}catch{state.aiAvailable=false;}
+ $('composer-note').textContent=state.aiAvailable?'AI가 사진을 분석해 베스트컷을 추천해요.':'선명도·밝기·표정을 보고 후보를 추천해요.';
  updatePhotoStatus();
 }
 function chooseEngine(photos){
@@ -279,7 +280,7 @@ function chooseEngine(photos){
   const dialog=$('ai-consent');let done=false;
   const finish=choice=>{if(done)return;done=true;state.askingConsent=false;dialog.close();dialog.removeEventListener('cancel',cancel);resolve(choice);};
   const cancel=event=>{event.preventDefault();finish(null);};
-  $('ai-consent-yes').onclick=()=>finish('gemini');$('ai-consent-local').onclick=()=>finish('local');$('ai-consent-cancel').onclick=()=>finish(null);dialog.addEventListener('cancel',cancel);dialog.showModal();
+  $('ai-consent-yes').onclick=()=>finish('gemini');$('ai-consent-cancel').onclick=()=>finish(null);dialog.addEventListener('cancel',cancel);dialog.showModal();
  });
 }
 async function analyze(localOnly=false) {
@@ -287,7 +288,10 @@ async function analyze(localOnly=false) {
   const photos=state.photos.filter(p=>state.included.has(p.id));if(photos.length<2){toast('사진을 더 골라주세요.');return;}
   if(!validRequestedCount()){toast('선택한 사진 수 안에서 고를 장수를 입력해 주세요.');return;}
   const count=requestedCount();$('candidate-limit').replaceChildren(...Array.from({length:photos.length},(_,i)=>{const option=document.createElement('option');option.value=String(i+1);option.textContent=`${i+1}장`;return option;}));$('candidate-limit').value=String(count);
-  const engine=localOnly?'local':state.aiAvailable?await chooseEngine(photos):'local';if(!engine)return;
+  // Ask for AI consent once per visit; a retry after an AI error does not ask again.
+  const engine=localOnly?'local':!state.aiAvailable?'local':state.aiConsented?'gemini':await chooseEngine(photos);
+  if(!engine){toast('AI 추천은 동의 후 바로 써볼 수 있어요.');return;}
+  if(engine==='gemini')state.aiConsented=true;
   state.faceFailed=false;state.aiReview=null;const controller=new AbortController();state.controller=controller;show('loading');
   try{
     await prepareSamplePhotos(photos,{signal:controller.signal});
@@ -323,7 +327,7 @@ async function analyze(localOnly=false) {
 }
 for(const id of ['open-google-terms','consent-google-terms'])$(id).onclick=()=>$('google-terms').showModal();
 $('close-google-terms').onclick=()=>$('google-terms').close();
-$('ai-error-local').onclick=()=>{$('ai-error').close();analyze(true);};$('ai-error-close').onclick=()=>$('ai-error').close();
+$('ai-error-local').onclick=()=>{$('ai-error').close();analyze(true);};$('ai-error-retry').onclick=()=>{$('ai-error').close();analyze();};$('ai-error-close').onclick=()=>$('ai-error').close();
 function buildResult(){
   state.lastLimit=Number($('candidate-limit').value);
   const photos=state.photos.filter(p=>state.included.has(p.id));state.result=state.aiReview?reviewResult(state.aiReview,photos,state.lastLimit):classify(photos,state.settings,state.refs,state.analysisStory,state.lastLimit);
@@ -360,7 +364,7 @@ function renderResults(){
     const move=node('button','text-button',state.cleanup.has(photo.id)?'후보로 되돌리기':'이번에는 빼기');move.type='button';move.onclick=()=>changeFolder(photo.id,!state.cleanup.has(photo.id));bottom.append(label,move);content.append(title,reason,bottom);card.append(imageButton,content);return card;
   });
   $('result-grid').replaceChildren(...cards);if(!cards.length)$('result-grid').append(node('p','helper','여기에 모인 사진이 없어요. 다른 분류를 확인해 주세요.'));
-  $('selected-count').textContent=`${state.chosen.size}장`;$('finish').disabled=!state.chosen.size;
+  $('selected-count').textContent=`${state.chosen.size}장`;$('finish').disabled=!state.chosen.size;$('finish-label').textContent=state.chosen.size?`${state.chosen.size}장으로 고르기`:'올릴 사진을 체크해 주세요';
   $('feedback-panel').hidden=false;$('feedback-sns').textContent='Instagram';
   renderComparison();
 }
