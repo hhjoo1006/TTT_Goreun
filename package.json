@@ -6,6 +6,8 @@
     "build": "npm --prefix prototype run build",
     "test": "npm --prefix prototype test",
     "build:pages": "node scripts/build-pages.mjs",
-    "test:pages": "node --test tests/pages.test.mjs"
+    "test:pages": "node --test tests/pages.test.mjs",
+    "build:netlify": "node scripts/build-netlify.mjs",
+    "test:netlify": "node --test tests/netlify.test.mjs"
   }
 }

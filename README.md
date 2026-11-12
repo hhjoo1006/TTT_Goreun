@@ -6,6 +6,8 @@
 
 ## 작업물
 
+**Netlify 배포:** ZIP 다운로드 후 압축을 풀고 `deploy-netlify.cmd`를 실행하거나, Netlify에 GitHub 저장소를 연결하세요. 기존 사이트의 파일 업로드만으로는 Gemini 서버 함수 배포를 보장할 수 없습니다. [Netlify 배포 안내](NETLIFY-DEPLOY.md)를 참고하세요. 환경변수 이름은 `GEMINI_API_KEY`입니다.
+
 - `landing/`: 통합 랜딩페이지 HTML·CSS·JavaScript와 이미지, Pretendard 폰트.
 - `prototype/`: 홈·사진 선택·기준 입력·분류·비교·최종 선택 흐름이 있는 웹 체험판.
 
